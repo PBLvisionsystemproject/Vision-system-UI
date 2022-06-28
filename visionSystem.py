@@ -93,6 +93,107 @@ class visionSystem(QDialog):
 							| QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint 
 							| QtCore.Qt.WindowCloseButtonHint)
 
+		self.open_camera.clicked.connect(self.open_cam)
+
+
+
+	def testDevice(source):
+		cap = cv2.VideoCapture(source)
+		if cap is None or not cap.isOpened():
+			print('Warning: unable to open video source: ', source)
+
+	def make_1080p(self):
+		cap = cv2.VideoCapture(int(self.usb_com.currentText()))
+		cap.set(3, 1920)
+		cap.set(4, 1080)
+
+	def make_720p(self):
+		cap = cv2.VideoCapture(int(self.usb_com.currentText()))
+		cap.set(3, 1280)
+		cap.set(4, 720)
+
+	def make_480p(self):
+		cap = cv2.VideoCapture(int(self.usb_com.currentText()))
+		cap.set(3, 920)
+		cap.set(4, 840)
+		
+
+	def change_res(self, width, height):
+		cap = cv2.VideoCapture(int(self.usb_com.currentText()))
+		cap.set(3, width)
+		cap.set(4, height)
+
+	def open_cam(self):
+		cap = cv2.VideoCapture(int(self.usb_com.currentText()))
+		self.make_720p()
+		w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+		h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+		number_multiply = 2
+		w = w * number_multiply
+		h = h * number_multiply
+		print(w , h)
+		width_img = int(w)
+		height_img = int(h)
+		print(width_img , height_img)
+		ret, captureCam = cap.read()
+
+		captureCam = cv2.flip(captureCam, 0)
+		captureCam = cv2.flip(captureCam, 1)
+
+		self.openCamera(self,captureCam,2)
+
+
+		while True:
+			ret, captureCam_real = cap.read()
+			width = int(captureCam_real.shape[1]*1)
+			height = int(captureCam_real.shape[0]*1.255)
+			dim = (width, height)
+
+			captureCam_real_afterResize = cv2.resize(captureCam_real, dim, interpolation =cv2.INTER_AREA)
+
+			if self.mirror_image.isChecked() == True:
+				captureCam_real_afterResize = cv2.flip(captureCam_real_afterResize, 1)
+
+			if self.rotate_image.isChecked() == True:
+				if self.rotation_deg.currentText() == "90 CW":
+					captureCam_real_afterResize = cv2.rotate(captureCam_real_afterResize, cv2.ROTATE_90_CLOCKWISE)
+				if self.rotation_deg.currentText() == "90 CCW":
+					captureCam_real_afterResize = cv2.rotate(captureCam_real_afterResize, cv2.ROTATE_90_COUNTERCLOCKWISE)
+				if self.rotation_deg.currentText() == "180":
+					captureCam_real_afterResize = cv2.rotate(captureCam_real_afterResize, cv2.ROTATE_180)
+
+			self.openCamera(self, captureCam_real_afterResize, 1)
+
+
+
+
+	def openCamera(self,img,window=1, display_number=1):
+		qformat = QImage.Format_Indexed8
+		if len(img.shape) == 3:
+			if img.shape[2] == 4:
+				qformat = QImage.Format_RGBA8888
+			else:
+				qformat = QImage.Format_RGB888
+		outImage = QImage(img, img.shape[1], img.shape[0], img.strides[0],qformat)
+		#BGR to RGB
+		outImage = outImage.rgbSwapped()
+
+		if window == 1:
+			if display_number == 0:
+				self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
+				self.realtime_cam.setScaledContents(True)
+			if display_number == 1:
+				self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
+				self.realtime_cam.setScaledContents(True)
+		if window == 2:
+			if display_number == 0:
+				self.process_cam.setPixmap(QPixmap.fromImage(outImage))
+				self.process_cam.setScaledContents(True)
+			if display_number == 1:
+				self.process_cam.setPixmap(QPixmap.fromImage(outImage))
+				self.process_cam.setScaledContents(True)
+
+
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)
 	window = visionSystem()
