@@ -93,6 +93,10 @@ class visionSystem(QDialog):
 							| QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint 
 							| QtCore.Qt.WindowCloseButtonHint)
 
+		self.pixmap = QPixmap('logo/machine_learning.jpg')
+		self.realtime_cam.setPixmap(self.pixmap)
+		self.process_cam.setPixmap(self.pixmap)
+
 		self.open_camera.clicked.connect(self.open_cam)
 
 
@@ -178,20 +182,24 @@ class visionSystem(QDialog):
 		#BGR to RGB
 		outImage = outImage.rgbSwapped()
 
-		if window == 1:
-			if display_number == 0:
-				self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
-				self.realtime_cam.setScaledContents(True)
-			if display_number == 1:
-				self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
-				self.realtime_cam.setScaledContents(True)
-		if window == 2:
-			if display_number == 0:
-				self.process_cam.setPixmap(QPixmap.fromImage(outImage))
-				self.process_cam.setScaledContents(True)
-			if display_number == 1:
-				self.process_cam.setPixmap(QPixmap.fromImage(outImage))
-				self.process_cam.setScaledContents(True)
+		try:
+			if window == 1:
+				if display_number == 0:
+					self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
+					self.realtime_cam.setScaledContents(True)
+				if display_number == 1:
+					self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
+					self.realtime_cam.setScaledContents(True)
+			if window == 2:
+				if display_number == 0:
+					self.process_cam.setPixmap(QPixmap.fromImage(outImage))
+					self.process_cam.setScaledContents(True)
+				if display_number == 1:
+					self.process_cam.setPixmap(QPixmap.fromImage(outImage))
+					self.process_cam.setScaledContents(True)
+		except Exception as e:
+			pass
+			
 
 
 if __name__ == '__main__':
