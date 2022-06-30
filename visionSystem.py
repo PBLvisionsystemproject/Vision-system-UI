@@ -22,7 +22,6 @@ import os
 import six.moves.urllib as urllib
 import sys
 import tarfile
-import tensorflow as tf
 import zipfile
 import time
 import json
@@ -37,8 +36,6 @@ from matplotlib import pyplot as plt
 from PIL import Image
 from datetime import date
 from datetime import datetime
-from object_detection.utils import visualization_utils as vis_util
-from object_detection.utils import label_map_util
 
 from PIL import Image
 from _thread import *
@@ -77,7 +74,6 @@ import pyqtgraph as pg
 from pathlib import Path
 from collections import deque
 
-import sys
 import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import (QCoreApplication, QPropertyAnimation, QDate, QDateTime, QMetaObject, QObject, QPoint, QRect, QSize, QTime, QUrl, Qt, QEvent)
@@ -93,12 +89,29 @@ class visionSystem(QDialog):
 							| QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint 
 							| QtCore.Qt.WindowCloseButtonHint)
 
+		self.setWindowIcon(QtGui.QIcon("logo/logo apps.png"))
 		self.pixmap = QPixmap('logo/machine_learning.jpg')
 		self.realtime_cam.setPixmap(self.pixmap)
 		self.process_cam.setPixmap(self.pixmap)
 
 		self.open_camera.clicked.connect(self.open_cam)
 
+
+	def verify_by_user(self):
+		answer = QtWidgets.QMessageBox.question(self, "Are you sure you want to quit ?", "Task is in progress !",QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+		return answer == QtWidgets.QMessageBox.Yes
+
+	def keyPressEvent(self, event):
+		if event.key() == QtCore.Qt.Key_Escape:
+			self.close()
+		else:
+			super(ObjectInspection, self).keyPressEvent(event)
+
+	def closeEvent(self, event):
+		if self.verify_by_user():
+			event.accept()
+		else:
+			event.ignore()
 
 
 	def testDevice(source):
@@ -139,25 +152,28 @@ class visionSystem(QDialog):
 		width_img = int(w)
 		height_img = int(h)
 		print(width_img , height_img)
-		ret, captureCam = cap.read()
-
-		captureCam = cv2.flip(captureCam, 0)
-		captureCam = cv2.flip(captureCam, 1)
-
-		self.openCamera(self,captureCam,2)
-
 
 		while True:
 			ret, captureCam_real = cap.read()
+
+			#_________________________________________________________________________________________________________________Light Effect
+			if self.light_eff.isChecked() == True:
+				#captureCam_real[:,:,2] = np.clip(int(self.contrast_vision_system.value()) * captureCam_real[:,:,2] + int(self.brightness_vision_system.value()), 0, 255);
+				captureCam_real = cv2.convertScaleAbs(captureCam_real, alpha=int(self.contrast_vision_system.value()), beta=int(self.brightness_vision_system.value()))
+			
+
 			width = int(captureCam_real.shape[1]*1)
 			height = int(captureCam_real.shape[0]*1.255)
 			dim = (width, height)
 
 			captureCam_real_afterResize = cv2.resize(captureCam_real, dim, interpolation =cv2.INTER_AREA)
 
+			
+			#_________________________________________________________________________________________________________________Mirror
 			if self.mirror_image.isChecked() == True:
 				captureCam_real_afterResize = cv2.flip(captureCam_real_afterResize, 1)
 
+			#_________________________________________________________________________________________________________________Rotate
 			if self.rotate_image.isChecked() == True:
 				if self.rotation_deg.currentText() == "90 CW":
 					captureCam_real_afterResize = cv2.rotate(captureCam_real_afterResize, cv2.ROTATE_90_CLOCKWISE)
@@ -166,12 +182,28 @@ class visionSystem(QDialog):
 				if self.rotation_deg.currentText() == "180":
 					captureCam_real_afterResize = cv2.rotate(captureCam_real_afterResize, cv2.ROTATE_180)
 
-			self.openCamera(self, captureCam_real_afterResize, 1)
+			#_________________________________________________________________________________________________________________Gray Image
+			if self.rgb_gray.isChecked() == True:
+				captureCam_real_afterResize = cv2.cvtColor(captureCam_real_afterResize, cv2.COLOR_BGR2GRAY)
+
+			# cv2.imshow('object detection', captureCam_real_afterResize)
+			
+			self.openCamera(captureCam_real_afterResize,1)
+
+			if cv2.waitKey(25) & 0xFF == ord('q') or self.close_cam.isDown():
+				self.pixmap = QPixmap('logo/machine_learning.jpg')
+				self.realtime_cam.setPixmap(self.pixmap)
+				self.process_cam.setPixmap(self.pixmap)
+				cv2.destroyAllWindows()
+				break
+
+		cap.release()
+		cv2.destroyAllWindows()
 
 
 
 
-	def openCamera(self,img,window=1, display_number=1):
+	def openCamera(self,img,window=0):
 		qformat = QImage.Format_Indexed8
 		if len(img.shape) == 3:
 			if img.shape[2] == 4:
@@ -184,19 +216,11 @@ class visionSystem(QDialog):
 
 		try:
 			if window == 1:
-				if display_number == 0:
-					self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
-					self.realtime_cam.setScaledContents(True)
-				if display_number == 1:
-					self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
-					self.realtime_cam.setScaledContents(True)
+				self.realtime_cam.setPixmap(QPixmap.fromImage(outImage))
+				self.realtime_cam.setScaledContents(True)
 			if window == 2:
-				if display_number == 0:
-					self.process_cam.setPixmap(QPixmap.fromImage(outImage))
-					self.process_cam.setScaledContents(True)
-				if display_number == 1:
-					self.process_cam.setPixmap(QPixmap.fromImage(outImage))
-					self.process_cam.setScaledContents(True)
+				self.process_cam.setPixmap(QPixmap.fromImage(outImage))
+				self.process_cam.setScaledContents(True)
 		except Exception as e:
 			pass
 			
